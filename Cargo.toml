@@ -10,6 +10,10 @@ clap_derive = "^4.3.2"
 log = "^0.4.19"
 serde = { version = "^1.0.170", features = ["derive"] }
 serde_json = "^1.0.100"
+simple_logger = "^4.3.0"
+smbios-lib = "^0.9.1"
+strum = "^0.25.0"
+strum_macros = "^0.25.3"
 
 [target.'cfg(unix)'.dependencies]
 libc = "^0.2.147"

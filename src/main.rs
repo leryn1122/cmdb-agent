@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 use clap::builder::Styles;
 use clap::Parser;
-use log::LevelFilter;
-use signal_hook::iterator::Signals;
 use support::clap_ext::LogLevelValueParser;
 
 use crate::agent::Agent;
@@ -29,7 +27,7 @@ struct Opts {
   config:    PathBuf,
   /// Enable debug mode.
   #[cfg(debug_assertions)]
-  #[arg(long)]
+  #[arg(long, action = clap::ArgAction::SetTrue)]
   debug:     bool,
   /// Set log level.
   #[arg(long, default_value_t = log::Level::Info, value_parser = LogLevelValueParser)]
@@ -41,13 +39,12 @@ fn main() -> Result<(), std::io::Error> {
     log::error!("{:?}", panic_info.to_string());
   }));
 
-  let mut opts = Opts::parse();
+  let opts = Opts::parse();
 
+  let _ = simple_logger::init_with_level(opts.log_level);
   if cfg!(debug_assertions) {
-    eprintln!("Current argument = {:?}", &opts);
+    log::trace!("Current argument = {:?}", &opts);
   }
-
-  log::set_max_level(LevelFilter::Info);
 
   let mut agent = Agent::new(opts.config);
   let _ = agent.start();
