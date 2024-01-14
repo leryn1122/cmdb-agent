@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cmdb-agent
+  labels:
+    app.kubernetes.io/name: cmdb
+    app.kubernetes.io/instance: cmdb
+    app.kubernetes.io/component: agent
+  annotations: {}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cmdb
+      app.kubernetes.io/instance: cmdb
+      app.kubernetes.io/component: agent
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cmdb
+        app.kubernetes.io/instance: cmdb
+        app.kubernetes.io/component: agent
+      annotations: {}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: cmdb
+                  app.kubernetes.io/instance: cmdb
+                  app.kubernetes.io/component: agent
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: agent
+          image: harbor.leryn.top/infra/cmdb-agent:0.1.0
+          imagePullPolicy: Always
+#          args:
+#            - --log-level=INFO
+#            - --config-file=/etc/cmdb/agent.toml
+          env:
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              scheme: HTTP
+              port: 8080
+              path: /healthz
+          readinessProbe:
+            httpGet:
+              host: 127.0.0.1
+              scheme: HTTP
+              port: 8080
+              path: /healthz
+          startupProbe:
+            httpGet:
+              host: 127.0.0.1
+              scheme: HTTP
+              port: 8080
+              path: /healthz
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            privileged: true
+          volumeMounts:
+            - name: dev-mem
+              mountPath: /dev/mem
+              readOnly: true
+            - name: os-release
+              mountPath: /etc/os-release
+              readOnly: true
+      tolerations:
+        - operator: Exists
+      volumes:
+        - name: dev-mem
+          hostPath:
+            path: /dev/mem
+        - name: os-release
+          hostPath:
+            path: /etc/os-release

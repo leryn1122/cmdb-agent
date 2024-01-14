@@ -4,16 +4,31 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+actix-web = "^4.4.1"
 anstyle = "^1.0.1"
+async-trait = "^0.1.77"
 clap = { version = "^4.3.11", features = ["color", "derive"] }
 clap_derive = "^4.3.2"
+default-net = "^0.21.0"
+getset = "^0.1.2"
+hex = "^0.4.3"
+hmac = "^0.12.1"
 log = "^0.4.19"
+reqwest = { version = "^0.11.23", features = ["blocking", "json", "rustls-tls"], default-features = false }
+reqwest-middleware = "^0.2.4"
+reqwest-retry = "^0.3.0"
+rustls = "0.21.10"
 serde = { version = "^1.0.170", features = ["derive"] }
 serde_json = "^1.0.100"
+sha1 = "0.10.6"
 simple_logger = "^4.3.0"
 smbios-lib = "^0.9.1"
 strum = "^0.25.0"
 strum_macros = "^0.25.3"
+task-local-extensions = "^0.1.4"
+tokio = { version = "^1.35.1", features = ["rt", "rt-multi-thread", "macros"] }
+tokio-cron-scheduler = { version = "0.9.4", features = ["signal"] }
+toml = "^0.8.8"
 
 [target.'cfg(unix)'.dependencies]
 libc = "^0.2.147"

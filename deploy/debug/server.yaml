@@ -1,0 +1,130 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cmdb-debug-server
+  labels:
+    app.kubernetes.io/name: cmdb
+    app.kubernetes.io/instance: cmdb
+    app.kubernetes.io/component: debug-server
+  annotations: {}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cmdb
+      app.kubernetes.io/instance: cmdb
+      app.kubernetes.io/component: debug-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cmdb
+        app.kubernetes.io/instance: cmdb
+        app.kubernetes.io/component: debug-server
+      annotations: {}
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: cmdb
+                  app.kubernetes.io/instance: cmdb
+                  app.kubernetes.io/component: debug-server
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: debug-server
+          image: python:3.8
+          imagePullPolicy: IfNotPresent
+          command:
+            - python3
+          args:
+            - /opt/local-httpd.py
+          env:
+            - name: HTTP_PORT
+              value: "8080"
+          ports:
+            - name: http
+              protocol: TCP
+              containerPort: 8080
+          volumeMounts:
+            - name: cmdb-debug-server-config
+              mountPath: /opt
+              readOnly: true
+      volumes:
+        - name: cmdb-debug-server-config
+          configMap:
+            name: cmdb-debug-server-config
+            items:
+              - key: local-httpd.py
+                path: local-httpd.py
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cmdb-debug-server
+  labels:
+    app.kubernetes.io/name: cmdb
+    app.kubernetes.io/instance: cmdb
+    app.kubernetes.io/component: debug-server
+  annotations: {}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/name: cmdb
+    app.kubernetes.io/instance: cmdb
+    app.kubernetes.io/component: debug-server
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cmdb-debug-server-config
+  labels:
+    app.kubernetes.io/name: cmdb
+    app.kubernetes.io/instance: cmdb
+    app.kubernetes.io/component: debug-server
+  annotations: {}
+data:
+  "local-httpd.py": |-
+    #!/usr/bin/env python3
+
+    import http
+    import os
+    from http.server import BaseHTTPRequestHandler
+    import socketserver
+
+    PORT = int(os.getenv('HTTP_PORT') or 8081)
+
+
+    class SimpleHandler(BaseHTTPRequestHandler):
+      def do_GET(self):
+        self.handle_request()
+      
+      def do_POST(self):
+        self.handle_request()
+      
+      def handle_request(self):
+        print("================================")
+        print("Request line:", self.requestline)
+        print("Headers:\n")
+        print(self.headers)
+        
+        length = int(self.headers['Content-Length'] or 0)
+        body = self.rfile.read(length)
+        print(str(body, encoding='utf-8'))
+        print("================================")
+        
+        self.send_response(http.HTTPStatus.OK)
+        self.send_header("Content-Type", "plain/text")
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+
+    if __name__ == '__main__':
+      with socketserver.TCPServer(("0.0.0.0", PORT), SimpleHandler) as httpd:
+        print("Server has started at", httpd.server_address[0] + ":" + str(httpd.server_address[1]))
+        httpd.serve_forever()

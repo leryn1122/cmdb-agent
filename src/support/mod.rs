@@ -1,2 +1,2 @@
 pub mod clap_ext;
-pub mod smbios;
+pub mod kube;

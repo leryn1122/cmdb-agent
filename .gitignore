@@ -377,3 +377,4 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/linux,macos,windows,eclipse,clion+all,intellij+all,jetbrains+all,visualstudiocode,rust
 
 !Cargo.lock
+!debug

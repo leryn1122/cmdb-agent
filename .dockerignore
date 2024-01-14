@@ -1,0 +1,12 @@
+docs
+etc
+!etc/cmdb
+scripts
+target
+
+.clippy.toml
+.editorconfig
+.git*
+LICENSE-*
+README.md
+rustfmt.toml

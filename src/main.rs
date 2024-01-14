@@ -7,7 +7,10 @@ use support::clap_ext::LogLevelValueParser;
 use crate::agent::Agent;
 
 pub mod agent;
+pub(crate) mod collect;
+pub mod schema;
 pub mod support;
+pub mod web;
 
 /// # CMDB Agent (Configuration Management Database)
 #[derive(Parser, Debug)]
@@ -19,22 +22,18 @@ pub mod support;
 struct Opts {
   /// Path to the configuration file.
   #[arg(
-    short = 'f',
     long,
     value_name = "CONFIG_FILE",
     default_value = "/etc/cmdb/agent.toml"
   )]
-  config:    PathBuf,
-  /// Enable debug mode.
-  #[cfg(debug_assertions)]
-  #[arg(long, action = clap::ArgAction::SetTrue)]
-  debug:     bool,
+  config_file: PathBuf,
   /// Set log level.
   #[arg(long, default_value_t = log::Level::Info, value_parser = LogLevelValueParser)]
-  log_level: log::Level,
+  log_level:   log::Level,
 }
 
-fn main() -> Result<(), std::io::Error> {
+#[actix_web::main]
+async fn main() -> Result<(), std::io::Error> {
   std::panic::set_hook(Box::new(|panic_info| {
     log::error!("{:?}", panic_info.to_string());
   }));
@@ -42,18 +41,17 @@ fn main() -> Result<(), std::io::Error> {
   let opts = Opts::parse();
 
   let _ = simple_logger::init_with_level(opts.log_level);
-  if cfg!(debug_assertions) {
-    log::trace!("Current argument = {:?}", &opts);
-  }
+  log::trace!("Current argument = {:?}", &opts);
 
-  let mut agent = Agent::new(opts.config);
-  let _ = agent.start();
+  let mut agent = Agent::new(opts.config_file);
+  let _ = agent.start().await?;
 
-  wait_for_signals();
   Ok(())
 }
 
 #[cfg(unix)]
+#[allow(dead_code)]
+#[deprecated]
 fn wait_for_signals() {
   use signal_hook::consts::TERM_SIGNALS;
   use signal_hook::iterator::Signals;

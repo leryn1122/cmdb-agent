@@ -1,34 +1,17 @@
-use std::collections::HashMap;
 use std::io::Error;
 use std::io::ErrorKind;
 use std::path::Path;
-use std::str::FromStr;
 
 use smbioslib::SMBiosData;
 use smbioslib::SMBiosEntryPoint64;
 use smbioslib::SMBiosVersion;
 use smbioslib::UndefinedStructTable;
-use strum::IntoEnumIterator;
-
-use crate::support::smbios::opt::Keyword;
 
 pub mod error;
 pub mod opt;
 
-pub(crate) fn collect_dmidecode() -> std::io::Result<String> {
-  let smbios_data = table_load()?;
-  let mut map = HashMap::<String, String>::new();
-  let keywords: Vec<&str> = Keyword::iter().map(|v| v.into()).collect();
-  for keyword in keywords {
-    map.insert(
-      keyword.to_string(),
-      Keyword::from_str(keyword)
-        .map_err(|e| std::io::Error::new(ErrorKind::InvalidData, e))?
-        .parse(&smbios_data)
-        .unwrap(),
-    );
-  }
-  Ok(format!("{:?}\n", map))
+pub fn get_smbios_data() -> std::io::Result<SMBiosData> {
+  table_load()
 }
 
 #[cfg(target_os = "macos")]
@@ -39,7 +22,7 @@ fn table_load() -> std::io::Result<SMBiosData> {
 
 #[cfg(target_os = "linux")]
 fn table_load() -> std::io::Result<SMBiosData> {
-  table_load_from_sys()
+  table_load_from_dev_mem()
 }
 
 #[cfg(target_os = "linux")]
@@ -49,7 +32,7 @@ fn table_load_from_sys() -> std::io::Result<SMBiosData> {
     smbioslib::SYS_ENTRY_FILE
   );
 
-  let version: SMBiosVersion;
+  let mut version = SMBiosVersion::new(0, 0, 0);
   let sys_entry_path = Path::new(smbioslib::SYS_ENTRY_FILE);
   SMBiosEntryPoint64::try_load_from_file(sys_entry_path).map(|entry_point| {
     version = SMBiosVersion {
